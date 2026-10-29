@@ -1,6 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { queryClient, queryKeys } from './queryClient'
 
+// Always same-origin: the Vite proxy (dev) and the Vercel rewrite in vercel.json (production)
+// forward /api to the backend, so the auth cookies are first-party in every browser.
 export const api = axios.create({
   baseURL: '/api/v1',
   withCredentials: true,

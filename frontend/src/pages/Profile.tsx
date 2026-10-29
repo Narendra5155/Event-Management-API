@@ -48,14 +48,16 @@ export default function Profile() {
 
   if (!user) return null
 
-  const handleLogoutAll = () =>
-    logoutAll.mutate(undefined, {
-      onSuccess: () => {
-        toast.success('Logged out on every device')
-        navigate('/login', { replace: true })
-      },
-      onError: (err) => toast.error(getErrorMessage(err)),
-    })
+  // mutateAsync resolves even though this page unmounts once the user is cleared.
+  const handleLogoutAll = async () => {
+    try {
+      await logoutAll.mutateAsync()
+      navigate('/login', { replace: true })
+      toast.success('Logged out on every device')
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl">

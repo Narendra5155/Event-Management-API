@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      // Proxying keeps the API same-origin in dev, so HTTP-only cookies just work.
+      // Mirrors the /api rewrite in vercel.json, so the app talks to the API on its own origin.
       proxy: {
         '/api': { target: env.VITE_API_PROXY_TARGET || 'http://localhost:5050', changeOrigin: true },
       },

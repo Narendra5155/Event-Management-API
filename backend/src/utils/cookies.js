@@ -5,6 +5,8 @@ export const ACCESS_COOKIE = 'accessToken';
 export const REFRESH_COOKIE = 'refreshToken';
 const REFRESH_PATH = '/api/v1/auth';
 
+// The frontend reaches the API on its own domain (Vite proxy in dev, Vercel rewrite in
+// production), so these are first-party cookies and can be strict.
 const baseOptions = {
   httpOnly: true,
   secure: env.isProd,

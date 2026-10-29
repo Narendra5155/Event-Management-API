@@ -11,7 +11,11 @@ const schema = Joi.object({
   MONGO_URI: Joi.string()
     .uri({ scheme: ['mongodb', 'mongodb+srv'] })
     .required(),
+  // Comma-separated frontend origins allowed to make state-changing requests. "*" matches one
+  // subdomain label, e.g. https://eventsphere-*.vercel.app for Vercel preview deployments.
   CLIENT_URL: Joi.string().default('http://localhost:5173'),
+  // Number of reverse proxies in front of the app (Render's load balancer = 1).
+  TRUST_PROXY: Joi.number().integer().min(0).default(1),
   JWT_ACCESS_SECRET: Joi.string().min(32).required(),
   JWT_REFRESH_SECRET: Joi.string().min(32).required(),
   ACCESS_TOKEN_TTL: duration.default('15m'),
@@ -34,7 +38,8 @@ export const env = {
   isTest: value.NODE_ENV === 'test',
   port: value.PORT,
   mongoUri: value.MONGO_URI,
-  clientUrls: value.CLIENT_URL.split(',').map((url) => url.trim()),
+  clientUrls: value.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean),
+  trustProxy: value.TRUST_PROXY,
   jwt: {
     accessSecret: value.JWT_ACCESS_SECRET,
     refreshSecret: value.JWT_REFRESH_SECRET,

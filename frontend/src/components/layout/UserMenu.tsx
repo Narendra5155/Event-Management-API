@@ -27,13 +27,13 @@ export function UserMenu({ user }: { user: User }) {
   const logout = useLogout()
   const navigate = useNavigate()
 
-  const handleLogout = () =>
-    logout.mutate(undefined, {
-      onSettled: () => {
-        toast.success('Logged out')
-        navigate('/')
-      },
-    })
+  // Leave the page first: on a protected page, clearing the user would otherwise
+  // redirect to /login and unmount this menu before a mutate callback could run.
+  const handleLogout = async () => {
+    navigate('/')
+    await logout.mutateAsync().catch(() => undefined) // the user is cleared either way
+    toast.success('Logged out')
+  }
 
   return (
     <DropdownMenu>

@@ -153,4 +153,42 @@ npm run build   # type-check + production build
 npm run lint
 ```
 
-For production, serve `frontend/dist` and route `/api` to the backend on the same origin. Set `NODE_ENV=production` on the API so cookies are sent as `Secure` with `SameSite=Strict`.
+## Deployment: backend on Render, frontend on Vercel
+
+The browser only ever talks to the Vercel domain. [`frontend/vercel.json`](frontend/vercel.json) rewrites `/api/*` to the Render service, just as the Vite proxy does in development. The auth cookies are therefore first-party (`SameSite=Strict`), work in every browser including Safari and iOS, and no CORS setup is needed.
+
+```
+browser ──► https://<app>.vercel.app/api/v1/...  ──(Vercel rewrite)──►  https://<app>.onrender.com/api/v1/...
+```
+
+### Render (backend)
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `backend` |
+| Build command | `npm ci` |
+| Start command | `npm start` |
+| Health check path | `/api/v1/health` |
+
+| Environment variable | Value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `MONGO_URI` | Atlas connection string |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two different random strings, 32+ characters |
+| `CLIENT_URL` | `https://<app>.vercel.app` |
+
+- To allow Vercel preview deployments, add a wildcard origin: `CLIENT_URL=https://<app>.vercel.app,https://<app>-*.vercel.app`. A `*` matches one subdomain label.
+- Render sets `PORT` itself. `TRUST_PROXY` defaults to `1`, which counts Render's load balancer.
+
+### Vercel (frontend)
+
+Set the root directory to `frontend` (framework preset: Vite); no environment variables are required. [`frontend/vercel.json`](frontend/vercel.json) does two things:
+
+- It proxies `/api/*` to the Render URL. Update the URL there if your service name changes.
+- It serves `index.html` for every other path, so client-side routes like `/events/123` survive a page refresh.
+
+### Notes
+
+- **CSRF protection:** every `POST`, `PATCH` and `DELETE` must come from an origin in `CLIENT_URL`, or the API returns 403 ([`originCheck.js`](backend/src/middlewares/originCheck.js)). Through the rewrite, the browser still sends the Vercel domain as `Origin`, which is why `CLIENT_URL` must list it.
+- **Cold starts:** Render's free plan sleeps after inactivity, and the first request can take 20–50 seconds. Vercel waits up to 120 seconds for the backend, so the first request is slow but doesn't fail.
+- **Rate limits:** login and register are rate limited per client IP. Check that `req.ip` is the visitor's IP rather than Vercel's. If every request appears to come from Vercel, raise `TRUST_PROXY` to `2`.
